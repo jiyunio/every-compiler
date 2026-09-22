@@ -4,7 +4,7 @@ GitHub Pages에 그대로 올릴 수 있는 HTML/CSS/JavaScript Java 편집기�
 
 ## 배포
 
-1. GitHub 저장소를 만들고 이 폴더 안의 `index.html`, `style.css`, `app.js`, `completion.js`, `editing.js`, `.nojekyll`을 저장소 루트에 업로드합니다.
+1. GitHub 저장소를 만들고 이 폴더 안의 `index.html`, `style.css`, `app.js`, `completion.js`, `editing.js`, `history.js`, `.nojekyll`을 저장소 루트에 업로드합니다.
 2. 저장소의 Settings → Pages에서 Source를 **Deploy from a branch**로 선택합니다.
 3. Branch를 **main**, 폴더를 **/(root)**로 선택하고 저장합니다.
 4. 배포 완료 후 Pages에 표시되는 주소로 접속합니다. 프로젝트 저장소의 하위 경로에서도 작동합니다.
@@ -39,3 +39,5 @@ GitHub Pages는 정적 호스팅이므로 Java 실행은 외부 **Wandbox 공개
 자동완성: 현재 문서의 변수·메서드 등 이름을 입력하면 후보가 표시됩니다. 방향키로 선택하고 Tab으로 완성합니다. Esc는 후보를 닫고 Ctrl+Space는 다시 표시합니다. 후보가 없으면 Tab은 들여쓰기입니다. Java 타입/스코프 분석 기반이 아닌 문서 단어 기반이며, 주석과 문자열은 제외합니다.
 
 기본 편집 기능: {}, (), [], 큰따옴표·작은따옴표 자동 닫기, 기존 짝 재사용, 닫는 기호 건너뛰기, 선택한 글자 감싸기, 빈 쌍 Backspace 삭제, 여러 줄 Tab/Shift+Tab 들여쓰기, 줄 앞 공백 Backspace 단위 삭제를 지원합니다. 괄호 안에서 Enter를 누르면 들여쓴 새 줄을 만듭니다. 주석·문자열 안에서는 일반 괄호를 자동 생성하지 않습니다.
+
+실행 취소: Ctrl+Z. 다시 실행: Ctrl+Y 또는 Ctrl+Shift+Z (Mac에서는 Cmd). 코드 편집, 자동 괄호, 들여쓰기, 자동완성, 주석 전환을 최대 300개 상태까지 기록하며 새로고침하면 기록이 초기화됩니다.
