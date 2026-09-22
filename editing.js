@@ -64,3 +64,34 @@ function smartEdit(source,start,end,key,shift=false){
     }
     return null;
 }
+
+function toggleLineComment(source, start, end) {
+    const from = source.slice(0, start).lastIndexOf('\n') + 1;
+    const last = end > start && source[end - 1] === '\n' ? end - 1 : end;
+    const newline = source.indexOf('\n', last);
+    const to = newline < 0 ? source.length : newline;
+    const lines = source.slice(from, to).split('\n');
+    const nonempty = lines.filter(line => line.trim());
+    const uncomment = nonempty.length > 0 && nonempty.every(line => /^\s*\/\//.test(line));
+    const changes = [];
+    let offset = from;
+    const text = lines.map(line => {
+        const indent = line.match(/^[\t ]*/)[0].length;
+        let remove = 0, add = '';
+        if (uncomment) remove = line.slice(indent).match(/^\/\/ ?/)?.[0].length || 0;
+        else if (line.trim() || lines.length === 1) add = '// ';
+        if (remove || add) changes.push({at: offset + indent, remove, add: add.length});
+        offset += line.length + 1;
+        return line.slice(0, indent) + add + line.slice(indent + remove);
+    }).join('\n');
+    function map(pos) {
+        let delta = 0;
+        for (const change of changes) {
+            if (pos < change.at) break;
+            if (pos <= change.at + change.remove) return change.at + delta + change.add;
+            delta += change.add - change.remove;
+        }
+        return pos + delta;
+    }
+    return {from, to, text, caret: map(start), selectionEnd: map(end)};
+}

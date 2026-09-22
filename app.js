@@ -48,6 +48,15 @@ function newlineEdit(source, start, end) {
     return {text, end: end + (closing ? closing[0].length - 1 : 0), caret: start + 1 + nextIndent.length};
 }
 editor.addEventListener('keydown', e => {
+    if (!e.isComposing && (e.ctrlKey || e.metaKey) && !e.altKey && (e.code === 'Slash' || e.key === '/')) {
+        e.preventDefault();
+        const direction = editor.selectionDirection;
+        const edit = toggleLineComment(editor.value, editor.selectionStart, editor.selectionEnd);
+        editor.setRangeText(edit.text, edit.from, edit.to, 'end');
+        editor.setSelectionRange(edit.caret, edit.selectionEnd, direction);
+        editor.dispatchEvent(new Event('input'));
+        return;
+    }
     if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     const smart = smartEdit(editor.value, editor.selectionStart, editor.selectionEnd, e.key, e.shiftKey);
     if (smart) {
