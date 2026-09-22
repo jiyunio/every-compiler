@@ -4,7 +4,11 @@ import java.lang.*;
 import java.io.*;
 
 class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        StringBuilder sb = new StringBuilder();
+        
         System.out.println("Hello world!");
     }
 }
@@ -30,7 +34,47 @@ function syncScroll(){ $('highlight').scrollTop=editor.scrollTop; $('highlight')
 function cursor(){const before=editor.value.slice(0,editor.selectionStart).split('\n');$('cursor').textContent=`Ln ${before.length}, Col ${before.at(-1).length+1}`;}
 editor.addEventListener('input',paint);
 editor.addEventListener('scroll',syncScroll);editor.addEventListener('click',cursor);editor.addEventListener('keyup',cursor);
-editor.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const p=editor.selectionStart;editor.setRangeText('    ',p,editor.selectionEnd,'end');editor.dispatchEvent(new Event('input'));}});
+function newlineEdit(source, start, end) {
+    const lineStart = source.slice(0, start).lastIndexOf('\n') + 1;
+    const before = source.slice(lineStart, start);
+    const indent = before.match(/^[\t ]*/)[0];
+    // Ignore braces inside Java strings and comments when opening a block.
+    const codeBefore = source.slice(0, start).replace(/\/\*[\s\S]*?(?:\*\/|$)|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '');
+    const opensBlock = before.trim().length > 0 && codeBefore.trimEnd().endsWith('{');
+    const nextIndent = indent + (opensBlock ? '    ' : '');
+    const after = source.slice(end);
+    const closing = opensBlock ? after.match(/^[\t ]*\}/) : null;
+    const text = '\n' + nextIndent + (closing ? '\n' + indent : '');
+    return {text, end: end + (closing ? closing[0].length - 1 : 0), caret: start + 1 + nextIndent.length};
+}
+editor.addEventListener('keydown', e => {
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+    const smart = smartEdit(editor.value, editor.selectionStart, editor.selectionEnd, e.key, e.shiftKey);
+    if (smart) {
+        e.preventDefault();
+        editor.setRangeText(smart.text, smart.from, smart.to, 'end');
+        editor.setSelectionRange(smart.caret, smart.selectionEnd);
+        editor.dispatchEvent(new Event('input'));
+        return;
+    }
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        editor.setRangeText('    ', editor.selectionStart, editor.selectionEnd, 'end');
+        editor.dispatchEvent(new Event('input'));
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const edit = newlineEdit(editor.value, editor.selectionStart, editor.selectionEnd);
+        editor.setRangeText(edit.text, editor.selectionStart, edit.end, 'end');
+        editor.setSelectionRange(edit.caret, edit.caret);
+        editor.dispatchEvent(new Event('input'));
+        const caretLine = editor.value.slice(0, edit.caret).split('\n').length - 1;
+        const lineHeight = parseFloat(getComputedStyle(editor).lineHeight);
+        const top = caretLine * lineHeight;
+        if (top + lineHeight > editor.scrollTop + editor.clientHeight) editor.scrollTop = top + lineHeight - editor.clientHeight;
+        else if (top < editor.scrollTop) editor.scrollTop = top;
+        syncScroll();
+    }
+});
 let theme='light';try{theme=localStorage.getItem('java-studio-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch{}
 function setTheme(){document.documentElement.dataset.theme=theme;$('theme').textContent=theme==='dark'?'☀':'☾';$('theme').setAttribute('aria-label',theme==='dark'?'라이트 모드로 전환':'다크 모드로 전환');}
 $('theme').onclick=()=>{theme=theme==='dark'?'light':'dark';setTheme();try{localStorage.setItem('java-studio-theme',theme);}catch{}};setTheme();
@@ -50,7 +94,9 @@ $('splitter').addEventListener('pointermove',e=>{if($('splitter').hasPointerCapt
 $('splitter').addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();width(e.key==='Home'?240:e.key==='End'?600:Number($('splitter').getAttribute('aria-valuenow'))+(e.key==='ArrowLeft'?20:-20));}});
 $('clear').onclick=()=>{if(busy)return;$('output').textContent='';$('output').hidden=true;$('output-empty').hidden=false;$('run-status').textContent='준비됨';$('run-status').className='run-status';};
 async function run(){
-    if(busy)return;busy=true;files.set(active,editor.value);const snapshot=new Map(files),stdin=$('stdin').value;
+    if(busy)return;
+    const source=editor.value,stdin=$('stdin').value;
+    busy=true;
     $('run').disabled=true;$('clear').disabled=true;$('run').querySelector('span').textContent='실행 중';
     if(workspace.classList.contains('io-collapsed'))togglePanel('io');if(workspace.classList.contains('focused'))$('focus').click();
     $('output-empty').hidden=true;$('output').hidden=false;$('output').textContent='Java 컴파일러에 연결하고 있습니다…';$('run-status').textContent='컴파일 및 실행 중';$('run-status').className='run-status';
